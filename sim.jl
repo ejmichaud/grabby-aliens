@@ -36,6 +36,9 @@ function parse_commandline()
         "--quiet", "-q"
             help = "don't display progress to stdout, only create file"
             action = :store_true
+    "--minimal"
+            help = "only compute origins positions and times"
+        action = :store_true
     end
 
     return parse_args(settings)
@@ -97,6 +100,7 @@ function main()
     n = parsed_args["n"]
     s = parsed_args["speed"]
     seed = parsed_args["seed"]
+    minimal = parsed_args["minimal"]
     filestr = string("N", N, "D", D, "n", n, "s", s, "rs", seed, "-v1.json")
     outputf = joinpath(parsed_args["dir"], filestr)
     quiet = parsed_args["quiet"]
@@ -125,29 +129,30 @@ function main()
         println(length(C), "GCs arose in our simulation")
     end
 
-    if !quiet
-        println("Computing wait times...")
-    end
-    for i in 1:length(C)
-        w_ij = minimum(GC->wait_until(C[i], meets=GC, speed=s), C)
-        with_w = (origin=C[i].origin, t=C[i].t, w=w_ij)
-        C[i] = with_w
-    end
-
-    if !quiet
-        println("Computing visible civs and visible angles...")
-    end
-    for ix in 1:length(C)
-        C_i = civs_visible_from(C[ix], C=C, speed=s)
-        if length(C_i) > 0
-            max_b = maximum(GC->visible_angle(C[ix], looking_at=GC, speed=s), C_i)
-        else
-            max_b = -Inf
+    if !minimal
+        if !quiet
+            println("Computing wait times...")
         end
-        with_values = (origin=C[ix].origin, t=C[ix].t, w=C[ix].w, C=length(C_i), b=max_b)
-        C[ix] = with_values
-    end
+        for i in 1:length(C)
+            w_ij = minimum(GC->wait_until(C[i], meets=GC, speed=s), C)
+            with_w = (origin=C[i].origin, t=C[i].t, w=w_ij)
+            C[i] = with_w
+        end
 
+        if !quiet
+            println("Computing visible civs and visible angles...")
+        end
+        for ix in 1:length(C)
+            C_i = civs_visible_from(C[ix], C=C, speed=s)
+            if length(C_i) > 0
+                max_b = maximum(GC->visible_angle(C[ix], looking_at=GC, speed=s), C_i)
+            else
+                max_b = -Inf
+            end
+            with_values = (origin=C[ix].origin, t=C[ix].t, w=C[ix].w, C=length(C_i), b=max_b)
+            C[ix] = with_values
+        end
+    end
     open(outputf, "w") do io
         write(io, JSON.json(C, 4))
     end
