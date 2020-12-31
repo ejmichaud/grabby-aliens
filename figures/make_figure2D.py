@@ -22,7 +22,7 @@ with open(f"../output/{filename}", "r") as f:
 origins_and_ws = [((GC['origin'][0], GC['origin'][1], GC['t']), GC['w']) for GC in C]
 
 resolution = 250
-skip = 1
+skip = 10
 
 fig = plt.figure(figsize=(6, 6))
 ax = fig.add_subplot(1, 1, 1, projection='3d')
@@ -37,9 +37,9 @@ for origin, w in tqdm(origins_and_ws[::skip]):
     ax.plot_surface(X, Y, Z, color=matplotlib.cm.rainbow(np.random.rand()), alpha=0.4)
 ax.view_init(elev=-20)
 
-plt.savefig("2d-wide-plot.svg")
-plt.savefig("2d-wide-plot.pdf")
-plt.savefig("2d-wide-plot.png", dpi=400)
+# plt.savefig("2d-wide-plot.svg")
+# plt.savefig("2d-wide-plot.pdf")
+plt.savefig("2d-wide-plot.png", dpi=200)
 
 
 
