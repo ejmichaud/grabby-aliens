@@ -55,9 +55,9 @@ for t in tqdm(np.linspace(min_t, max_t, 15)):
         r = (t - t0)*s
         u = np.linspace(0, 2 * np.pi, 100)
         v = np.linspace(0, np.pi, 100)
-        X = r * np.outer(np.cos(u), np.sin(v))
-        Y = r * np.outer(np.sin(u), np.sin(v))
-        Z = r * np.outer(np.ones(np.size(u)), np.cos(v))
+        X = r * np.outer(np.cos(u), np.sin(v)) + x
+        Y = r * np.outer(np.sin(u), np.sin(v)) + y
+        Z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
         ax.plot_surface(X, Y, Z, color=colors[i], alpha=0.6)
     camera.snap()
 
