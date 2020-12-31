@@ -151,7 +151,9 @@ function main()
     open(outputf, "w") do io
         write(io, JSON.json(C, 4))
     end
-    println("Wrote civ list (C) to ", outputf)
+    if !quiet
+        println("Wrote civ list (C) to ", outputf)
+    end
 
 end
 
