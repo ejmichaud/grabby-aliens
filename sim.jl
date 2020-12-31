@@ -1,5 +1,6 @@
 using ArgParse
 using ProgressMeter
+using Random
 import JSON
 
 
@@ -28,6 +29,10 @@ function parse_commandline()
             help = "directory to save output (json) to"
             arg_type = String
             default = pwd()
+        "--seed"
+            help = "random seed"
+            arg_type = Int
+            default = 0
         "--quiet", "-q"
             help = "don't display progress to stdout, only create file"
             action = :store_true
@@ -51,15 +56,52 @@ function prevents(i; prevents, speed)
 end;
 
 
+function wait_until(i; meets, speed)
+    j = meets
+    if i == j
+        return Inf
+    end
+    d = hypertorus_distance(i, j)
+    return ((d/speed) - (i.t - j.t)) / 2
+end;
+
+
+function civs_visible_from(i; C, speed)
+    C_i = []
+    for j in C
+        d_ij = hypertorus_distance(i, j)
+        o_ij = j.t + d_ij
+        if i.t > o_ij
+            push!(C_i, j)
+        end
+    end
+    return C_i
+end
+
+
+function visible_angle(i; looking_at, speed)
+    j = looking_at
+    if i == j
+        return -Inf
+    end
+    d_ij = hypertorus_distance(i, j)
+    o_ij = j.t + d_ij
+    return 2*speed*(i.t - o_ij)/d_ij
+end
+
+
 function main()
     parsed_args = parse_commandline()
     N = parsed_args["N"]
     D = parsed_args["D"]
     n = parsed_args["n"]
     s = parsed_args["speed"]
-    filestr = string("N", N, "D", D, "n", n, "s", s, "-v1.json")
+    seed = parsed_args["seed"]
+    filestr = string("N", N, "D", D, "n", n, "s", s, "rs", seed, "-v1.json")
     outputf = joinpath(parsed_args["dir"], filestr)
     quiet = parsed_args["quiet"]
+
+    Random.seed!(seed)
 
     if !quiet
         println("Initializing candidate GCs...")
@@ -83,10 +125,33 @@ function main()
         println(length(C), "GCs arose in our simulation")
     end
 
+    if !quiet
+        println("Computing wait times...")
+    end
+    for i in 1:length(C)
+        w_ij = minimum(GC->wait_until(C[i], meets=GC, speed=s), C)
+        with_w = (origin=C[i].origin, t=C[i].t, w=w_ij)
+        C[i] = with_w
+    end
+
+    if !quiet
+        println("Computing visible civs and visible angles...")
+    end
+    for ix in 1:length(C)
+        C_i = civs_visible_from(C[ix], C=C, speed=s)
+        if length(C_i) > 0
+            max_b = maximum(GC->visible_angle(C[ix], looking_at=GC, speed=s), C_i)
+        else
+            max_b = -Inf
+        end
+        with_values = (origin=C[ix].origin, t=C[ix].t, w=C[ix].w, C=length(C_i), b=max_b)
+        C[ix] = with_values
+    end
+
     open(outputf, "w") do io
         write(io, JSON.json(C, 4))
     end
-    println("Wrote civ list to ", outputf)
+    println("Wrote civ list (C) to ", outputf)
 
 end
 
